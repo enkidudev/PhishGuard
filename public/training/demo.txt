@@ -1,0 +1,8 @@
+PhishGuard training artifact
+
+This is a plain-text file for an authorized awareness exercise.
+It contains no payroll records, personal data, links, or executable content.
+
+Practice takeaway: Verify the sender and the need for access through a known
+channel before opening an unexpected attachment. Use your organization's
+reporting process if something looks wrong.

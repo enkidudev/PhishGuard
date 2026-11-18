@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ People & Authorization ============
+
+model Participant {
+  id          String               @id @default(cuid())
+  name        String
+  email       String               @unique
+  department  String
+  consented   Boolean              @default(false)
+  consentedAt DateTime?
+  active      Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  enrollments Enrollment[]
+  completions TrainingCompletion[]
+  attempts TrainingAttempt[]
+}
+
+// ============ Simulation Templates ============
+
+model Template {
+  id             String     @id @default(cuid())
+  name           String
+  category       String // Credential Harvesting (simulated) | CEO Fraud | Invoice Fraud | ...
+  difficulty     String // easy | medium | hard
+  subject        String
+  senderName     String
+  senderEmail    String
+  bodyHtml       String
+  landingMessage String // educational feedback shown when a simulated link is clicked
+  redFlags       String // JSON array of red flag annotations
+  isBuiltIn      Boolean    @default(false)
+  aiGenerated    Boolean    @default(false) // produced by the AI Template Studio (LLM)
+  createdAt      DateTime   @default(now())
+  campaigns      Campaign[]
+}
+
+// ============ Campaigns & Tracking ============
+
+model Campaign {
+  id            String       @id @default(cuid())
+  name          String
+  description   String?
+  status        String       @default("draft") // draft | running | completed | cancelled
+  templateId    String
+  template      Template     @relation(fields: [templateId], references: [id])
+  retentionDays Int          @default(90)
+  launchedAt    DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  enrollments   Enrollment[]
+}
+
+model Enrollment {
+  id            String         @id @default(cuid())
+  campaignId    String
+  campaign      Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant    @relation(fields: [participantId], references: [id])
+  deliveredAt   DateTime?
+  openedAt      DateTime?
+  clickedAt     DateTime?
+  landedAt      DateTime? // simulated phishing page was opened after a click
+  submittedAt   DateTime? // simulated credentials were entered on the phishing page (values are NEVER stored)
+  reportedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  events        TrackedEvent[]
+
+  @@unique([campaignId, participantId])
+}
+
+model TrackedEvent {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  type         String // DELIVERED | OPEN | CLICK | REPORT
+  note         String?
+  createdAt    DateTime   @default(now())
+}
+
+// ============ Awareness Training ============
+
+model TrainingModule {
+  id          String               @id @default(cuid())
+  title       String
+  category    String
+  durationMin Int
+  summary     String
+  contentMd   String
+  redFlagTips String // JSON array
+  createdAt   DateTime             @default(now())
+  completions TrainingCompletion[]
+  attempts TrainingAttempt[]
+}
+
+model TrainingCompletion {
+  id            String         @id @default(cuid())
+  participantId String
+  participant   Participant    @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  moduleId      String
+  module        TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  completedAt   DateTime       @default(now())
+
+  @@unique([participantId, moduleId])
+}
+
+// ============ Compliance, Safeguards & Audit ============
+
+model AllowedDomain {
+  id         String   @id @default(cuid())
+  domain     String   @unique
+  approvedBy String
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  actor     String
+  detail    String
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model TrainingAttempt {
+ id String @id @default(cuid())
+ participantId String
+ participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+ moduleId String
+ module TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+ phase String
+ score Int
+ total Int
+ createdAt DateTime @default(now())
+ @@index([participantId, moduleId])
+}

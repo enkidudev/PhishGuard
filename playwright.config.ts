@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test'
+export default defineConfig({ testDir: './tests/e2e', webServer: { command: process.env.TEST_PRODUCTION === 'true' ? 'npm start' : 'npm run dev', url: 'http://localhost:3000', timeout: 120000, reuseExistingServer: false }, timeout: 60000, use: { baseURL: 'http://localhost:3000', headless: true, launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--no-sandbox'] }, screenshot: 'only-on-failure' }, workers: 1, reporter: 'list' })
